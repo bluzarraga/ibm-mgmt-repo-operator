@@ -1,0 +1,30 @@
+# Licensed Materials - Property of IBM
+# (C) Copyright IBM Corporation 2016, 2019. All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+apiVersion: extensions/v1beta1
+kind: Ingress
+metadata:
+  name: mgmt-repo-index-v1
+  annotations:
+    kubernetes.io/ingress.class: "ibm-icp-management"
+    icp.management.ibm.com/rewrite-target: "/api/v1/charts/index.yaml"
+    icp.management.ibm.com/proxy-read-timeout: "120"
+    icp.management.ibm.com/proxy-send-timeout: "120"
+  labels:
+    app: "mgmt-repo"
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: "{{ .Release.Service }}"
+    release: "{{ .Release.Name }}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    app.kubernetes.io/name: "mgmt-repo"
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  rules:
+  - http:
+      paths:
+      - path: /mgmt-repo/api/v1/charts/index.yaml
+        backend:
+          serviceName: mgmt-repo
+          servicePort: 3001

@@ -1,0 +1,56 @@
+arch: ""
+auditService:
+  config:
+    enabled: true
+  image:
+    pullPolicy: IfNotPresent
+    repository: hyc-cloud-private-integration-docker-local.artifactory.swg-devops.com/ibmcom/icp-audit-service
+    tag: 3.3.1
+  name: icp-audit-service
+mgmtrepo:
+  WLP_Creds:
+    oidcClientId: WLP_CLIENT_ID
+    oidcClientSecret: WLP_CLIENT_SECRET
+    oidcName: platform-oidc-credentials
+    redirectURL: http://localhost:3001/auth/liberty/callback
+  env:
+    CHARTS_REPO_NAME: mgmt-charts
+    CLUSTER_CA_DOMAIN: mycluster.icp
+    CLUSTER_PORT: 8443
+    PROXY_ROUTE: mgmt-repo
+  image:
+    name: mgmt-repo
+    pullPolicy: IfNotPresent
+    repository: hyc-cloud-private-integration-docker-local.artifactory.swg-devops.com/ibmcom/icp-helm-repo
+    tag: 3.3.0
+  resources:
+    limits:
+      cpu: 100m
+      memory: 512Mi
+    requests:
+      cpu: 100m
+      memory: 512Mi
+  volumeMounts:
+    mgmtAssetsMountPath: /home/node/app/assets
+    mgmtAssetsName: mgmt-assets
+mongo:
+  clientcertssecret: icp-mongodb-client-cert
+  clustercertssecret: cluster-ca-cert
+  host: mongodb
+  password:
+    key: password
+    secret: icp-mongodb-admin
+  port: 27017
+  username:
+    key: user
+    secret: icp-mongodb-admin
+nodeSelector:
+  master: "true"
+replicaCount: 1
+runAsUser: 65534
+tolerations:
+- effect: NoSchedule
+  key: dedicated
+  operator: Exists
+- key: CriticalAddonsOnly
+  operator: Exists

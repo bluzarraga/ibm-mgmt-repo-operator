@@ -1,0 +1,217 @@
+# Licensed Materials - Property of IBM
+# (C) Copyright IBM Corporation 2016, 2019. All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: mgmt-repo
+  labels:
+    app: mgmt-repo
+    chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    heritage: "{{ .Release.Service }}"
+    release: "{{ .Release.Name }}"
+    app.kubernetes.io/instance: "{{ .Release.Name }}"
+    app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+    app.kubernetes.io/name: "mgmt-repo"
+    helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+spec:
+  replicas: {{ .Values.replicaCount }}
+  selector:
+    matchLabels:
+      app: mgmt-repo
+  template:
+    metadata:
+      annotations:
+        seccomp.security.alpha.kubernetes.io/pod: docker/default
+        productName: "IBM Multicloud Manager"
+        productID: "5737-E67"
+        productVersion: "3.2.1"
+      labels:
+        app: mgmt-repo
+        chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+        heritage: "{{ .Release.Service }}"
+        release: "{{ .Release.Name }}"
+        app.kubernetes.io/instance: "{{ .Release.Name }}"
+        app.kubernetes.io/managed-by: "{{ .Release.Service }}"
+        app.kubernetes.io/name: "mgmt-repo"
+        helm.sh/chart: "{{ .Chart.Name }}-{{ .Chart.Version }}"
+    spec:
+      hostNetwork: false
+      hostPID: false
+      hostIPC: false
+      securityContext:
+        runAsNonRoot: true
+        {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }} 
+        runAsUser: {{ .Values.runAsUser }}
+        {{- end }} 
+      nodeSelector:
+        master: "{{ .Values.nodeSelector.master }}"
+      affinity:
+        nodeAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            nodeSelectorTerms:
+              - matchExpressions:
+                - key: beta.kubernetes.io/arch
+                  operator: In
+                  values:
+                  {{- if .Values.arch }}
+                  - {{ .Values.arch }}
+                  {{- else }}
+                  - {{ template "mgmtrepo.arch" . }}
+                  {{- end }}
+      tolerations:
+{{ toYaml .Values.tolerations | indent 8 }}
+      containers:
+      {{ if .Values.auditService.config.enabled }}
+      - name: {{ .Values.auditService.name }}
+        image: "{{ .Values.auditService.image.repository }}:{{ .Values.auditService.image.tag }}"
+        imagePullPolicy: {{ .Values.auditService.image.pullPolicy }}
+        securityContext:
+          seLinuxOptions:
+            type: spc_t
+          runAsNonRoot: true
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          runAsUser: {{ .Values.runAsUser }}
+          {{- end }}
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: journal
+          mountPath: "/run/systemd/journal"
+        - name: shared
+          mountPath: "/var/log/audit"
+        resources:
+          limits:
+            cpu: 100m
+            memory: 128Mi
+          requests:
+            cpu: 50m
+            memory: 128Mi
+      {{ end }}
+
+      - name: {{ .Values.mgmtrepo.image.name }}
+        image: "{{ .Values.mgmtrepo.image.repository }}:{{ .Values.mgmtrepo.image.tag }}"
+        imagePullPolicy:  {{ .Values.mgmtrepo.image.pullPolicy }}
+        securityContext:
+          runAsNonRoot: true
+          {{- if not (.Capabilities.APIVersions.Has "security.openshift.io/v1") }}
+          runAsUser: {{ .Values.runAsUser }}
+          {{- end }}
+          allowPrivilegeEscalation: false
+          privileged: false
+          readOnlyRootFilesystem: true
+          capabilities:
+            drop:
+            - ALL
+        volumeMounts:
+        - name: mongodb-ca-cert
+          mountPath: /certs/mongodb-ca
+        - name: mongodb-client-cert
+          mountPath: /certs/mongodb-client
+        - name: {{ .Values.mgmtrepo.volumeMounts.mgmtAssetsName }}
+          mountPath: {{ .Values.mgmtrepo.volumeMounts.mgmtAssetsMountPath }}
+        {{ if .Values.auditService.config.enabled }}
+        - name: shared
+          mountPath: /var/log/audit
+        {{ end }}
+        livenessProbe:
+          httpGet:
+            path: "/api/v1/livecheck"
+            scheme: HTTP
+            port: 3001
+          initialDelaySeconds: 30
+          periodSeconds: 120
+          timeoutSeconds: 30
+          failureThreshold: 10
+          successThreshold: 1
+        readinessProbe:
+          httpGet:
+            path: "/api/v1/readycheck"
+            scheme: HTTP
+            port: 3001
+          initialDelaySeconds: 15
+          periodSeconds: 30
+          timeoutSeconds: 15
+          failureThreshold: 5
+          successThreshold: 1
+        resources:
+{{ toYaml .Values.mgmtrepo.resources | indent 10 }}
+        env:
+        - name: CLUSTER_CA_DOMAIN
+          value: "{{ .Values.mgmtrepo.env.CLUSTER_CA_DOMAIN }}"
+        - name: CLUSTER_PORT
+          value: "{{ .Values.mgmtrepo.env.CLUSTER_PORT }}"
+        - name: CHARTS_REPO_NAME
+          value: "{{ .Values.mgmtrepo.env.CHARTS_REPO_NAME }}"
+        - name: WLP_CLIENT_ID
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mgmtrepo.WLP_Creds.oidcName }}
+              key: {{ .Values.mgmtrepo.WLP_Creds.oidcClientId }}
+        - name: WLP_CLIENT_SECRET
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mgmtrepo.WLP_Creds.oidcName }}
+              key:  {{ .Values.mgmtrepo.WLP_Creds.oidcClientSecret }}
+        - name: WLP_REDIRECT_URL
+          value: {{ .Values.mgmtrepo.WLP_Creds.redirectURL }}
+        - name: PROXY_ROUTE
+          value: {{ .Values.mgmtrepo.env.PROXY_ROUTE }}
+        - name: MONGO_HOST
+          value: "{{ .Values.mongo.host }}"
+        - name: MONGO_PORT
+          value: "{{ .Values.mongo.port }}"
+        - name: MONGO_USER
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.username.secret }}
+              key: {{ .Values.mongo.username.key }}
+        - name: MONGO_PASS
+          valueFrom:
+            secretKeyRef:
+              name: {{ .Values.mongo.password.secret }}
+              key: {{ .Values.mongo.password.key }}
+        - name: MONGO_ISSSL
+          value: "true"
+        - name: MONGO_SSLCA
+          value: "/certs/mongodb-ca/tls.crt"
+        - name: MONGO_SSLCERT
+          value: "/certs/mongodb-client/tls.crt"
+        - name: MONGO_SSLKEY
+          value: "/certs/mongodb-client/tls.key"
+        - name: MONGO_DBNAME
+          value: "mgmtrepo-assets"
+        - name: SERVICE_NAME
+          value: {{ .Values.mgmtrepo.image.name }}
+        - name: POD_NAME
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.name
+        - name: POD_NAMESPACE
+          valueFrom:
+            fieldRef:
+              fieldPath: metadata.namespace
+      volumes:
+      - name: mongodb-ca-cert
+        secret:
+          defaultMode: 0644
+          secretName: {{ .Values.mongo.clustercertssecret }}
+      - name: mongodb-client-cert
+        secret:
+          defaultMode: 0644
+          secretName: {{ .Values.mongo.clientcertssecret }}
+      - name: {{ .Values.mgmtrepo.volumeMounts.mgmtAssetsName }}
+        emptyDir: {}
+
+      {{ if .Values.auditService.config.enabled }}
+      - name: journal
+        hostPath:
+          path: /run/systemd/journal
+      - name: shared
+        emptyDir: {}
+      {{ end }}

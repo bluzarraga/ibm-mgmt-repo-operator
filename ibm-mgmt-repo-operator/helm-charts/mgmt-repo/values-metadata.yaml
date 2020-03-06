@@ -1,0 +1,290 @@
+# Licensed Materials - Property of IBM
+# (C) Copyright IBM Corporation 2016, 2019. All Rights Reserved.
+# US Government Users Restricted Rights - Use, duplication or disclosure restricted by GSA ADP Schedule Contract with IBM Corp.
+
+## Metadata for mgmt-repo configuration
+## This metadata is used to drive IBM Cloud Private UI for configuration of the Helm chart installation
+
+replicaCount:
+  __metadata:
+    label: "Replica count"
+    description: "How many pods to run simultaneously"
+    type: "number"
+    immutable: true
+    required: true
+nodeSelector:
+  __metadata:
+    label: "Node selector criteria"
+    description: "Criteria for selecting node to run on"
+    hidden: true
+  master:
+    __metadata:
+      label: "Master node selector"
+      description: "Determines whether the component is scheduled on the master node"
+      type: string
+      immutable: true
+      hidden: true
+tolerations:
+  __metadata:
+    label: "Tolerations"
+    description: "Pod tolerations for assigning to nodes with matching taints"
+    required: true
+
+arch:
+  __metadata:
+    label: "Node architecture"
+    description: "Node architecture to deploy to. The helm chart will try to detect the architecture based on the master node."
+    type: "string"
+    immutable: false
+    required: false
+    options:
+      - label: "amd64"
+        value: "amd64"
+      - label: "ppc64le"
+        value: "ppc64le"
+      - label: "s390x"
+        value: "s390x"
+
+runAsUser:
+  __metadata:
+    label: "Run as User"
+    description: "What user to run as"
+    type: "string"
+    immutable: false
+    required: false
+
+mgmtrepo:
+  __metadata:
+    label: "Management repo"
+    description: "Component for storing and managing local charts"
+  image:
+    name:
+      __metadata:
+        label: "Image name"
+        description: "Docker image name"
+        type: "string"
+        required: true
+    repository:
+      __metadata:
+        label: "Repository"
+        description: "Docker image location"
+        type: "string"
+        required: true
+    tag:
+      __metadata:
+        label: "Tag"
+        description: "Docker image tag"
+        type: "string"
+        required: false
+    pullPolicy:
+      __metadata:
+        label: "Image pull policy"
+        description: "Docker image pull policy"
+        type: "string"
+        required: true      
+        options:
+        - label: "Always"
+          value: "Always"
+        - label: "Never"
+          value: "Never"
+        - label: "IfNotPresent"
+          value: "IfNotPresent"
+  env:
+    CLUSTER_PORT:
+      __metadata:
+        label: "Cluster port"
+        description: "The external port of the cluster"
+        type: "number"
+        immutable: false
+        required: true
+    CLUSTER_CA_DOMAIN:
+      __metadata:
+        label: "Cluster CA domain"
+        description: "Cluster certificate authority domain"
+        type: "string"
+        immutable: false
+        required: true
+    PROXY_ROUTE:
+      __metadata:
+        label: "Proxy route"
+        description: "Path for calling mgmt repo"
+        type: "string"
+        hidden: true
+    CHARTS_REPO_NAME:
+      __metadata:
+        label: "Chart repo name"
+        description: "Repo name to assign to crns"
+        type: "string"
+        hidden: true
+  WLP_Creds:
+    oidcName:
+      __metadata:
+        label: "OIDC name"
+        description: "WebSphere Liberty name"
+        type: "string"
+        hidden: true
+    oidcClientId:
+      __metadata:
+        label: "OIDC client ID"
+        description: "WebSphere Liberty client ID"
+        type: "string"
+        hidden: true
+    oidcClientSecret:
+      __metadata:
+        label: "OIDC client secret"
+        description: "WebSphere Liberty client secret"
+        type: "string"
+        hidden: true
+    redirectURL:
+      __metadata:
+        label: "WLP redirect URL"
+        description: "WebSphere Liberty rediect URL"
+        type: "string"
+        hidden: true
+  resources:
+    limits:
+      cpu:
+        __metadata:
+          label: "CPU limit"
+          description: "CPU limit for mgmt repo"
+          type: "string"
+          immutable: false
+          required: false
+      memory:
+        __metadata:
+          label: "Memory limit"
+          description: "Memory limit for mgmt repo"
+          type: "string" 
+          immutable: false
+          required: false
+    requests:
+      cpu:
+        __metadata:
+          label: "Requested CPU"
+          description: "Requested CPU amount for mgmt repo"
+          type: "string" 
+          immutable: false
+          required: false
+          hidden: true
+      memory: 
+        __metadata:
+          label: "Requested memory"
+          description: "Requested memory for mgmt repo"
+          type: "string"
+          immutable: false
+          required: false
+          hidden: true
+  volumeMounts:
+    mgmtAssetsName:
+      __metadata:
+        label: "Mgmt repo volume mount"
+        description: "Volume mount for locally storing chart assets"
+        type: "string"
+        immutable: true
+        hidden: true
+    mgmtAssetsMountPath:
+      __metadata:
+        label: "Mgmt repo volume mount path"
+        description: "Location of mgmt repo volume mount"
+        type: "string" 
+        immutable: true
+        hidden: true
+
+mongo:
+  __metadata:
+    label: "MongoDB"
+    description: "Database component for storing chart information"
+  host:
+    __metadata:
+      label: "MongoDB service name"
+      description: "The service name of the MongoDB service"
+      type: "string"
+      required: true
+  port: 
+    __metadata:
+      label: "MongoDB service port"
+      description: "The service port of the MongoDB service"
+      type: "number"
+      required: true
+  username:
+    secret:
+      __metadata:
+        label: "MongoDB username secret name"
+        description: "The name of the secret containing the MongoDB user name"
+        type: "string"
+        required: true
+    key:
+      __metadata:
+        label: "MongoDB username secret key name"
+        description: "The key name of the user name in the MongoDB secret"
+        type: "string"
+        required: true
+  password:
+    secret:
+      __metadata:
+        label: "MongoDB password secret name"
+        description: "The name of the secret containing the MongoDB password"
+        type: "string"
+        required: true
+    key:
+      __metadata:
+        label: "MongoDB password secret key name"
+        description: "The key name of the password in the MongoDB secret"
+        type: "string"
+        required: true
+  clustercertssecret:
+    __metadata:
+      label: "MongoDB CA certificate secret name"
+      description: "The name of the secret containing the CA certificate of the MongoDB service"
+      type: "string"
+      required: true
+  clientcertssecret:
+    __metadata:
+      label: "MongoDB client certificate secret name"
+      description: "The name of the secret containing the client certificate of the MongoDB service"
+      type: "string"
+      required: true  
+
+auditService:
+  __metadata:
+    label: "Audit service"
+    description: "Mgmt repo audit logging component"
+  name:
+    __metadata:
+      label: "Service name"
+      description: "Audit service component name"
+      type: "string"
+      required: true
+  image:
+    repository:
+      __metadata:
+        label: "Repository"
+        description: "Docker image location"
+        type: "string"
+        required: true
+    tag:
+      __metadata:
+        label: "Tag"
+        description: "Docker image tag"
+        type: "string"
+        required: false
+    pullPolicy:
+      __metadata:
+        label: "Image pull policy"
+        description: "Docker image pull policy"
+        type: "string"
+        required: true      
+        options:
+        - label: "Always"
+          value: "Always"
+        - label: "Never"
+          value: "Never"
+        - label: "IfNotPresent"
+          value: "IfNotPresent"
+
+  config:
+    enabled:
+      __metadata:
+        label: "Enable audit config"
+        description: "Is audit config enabled?"
+        type: "boolean"

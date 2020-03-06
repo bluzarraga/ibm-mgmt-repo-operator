@@ -1,0 +1,11 @@
+kind: RoleBinding
+apiVersion: rbac.authorization.k8s.io/v1
+metadata:
+  name: ibm-mgmt-repo-operator
+subjects:
+- kind: ServiceAccount
+  name: ibm-mgmt-repo-operator
+roleRef:
+  kind: Role
+  name: ibm-mgmt-repo-operator
+  apiGroup: rbac.authorization.k8s.io
